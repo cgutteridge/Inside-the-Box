@@ -19,7 +19,7 @@ $data->map( sub { my( $t ) = @_;
 	$type_resources->{$t->{o}}->{$t->{s}}=1;
 	$types->{$t->{o}}++;
 });
-print "Done first pass\n";
+# print "Done first pass\n";
 my $type_predicates = {};
 $data->map( sub { my( $t ) = @_;
 	{
@@ -59,14 +59,15 @@ $data->map( sub { my( $t ) = @_;
 		}
 	}
 });
-print "Done second pass\n";
+# print "Done second pass\n";
 foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 {
 	print "\n";
 	print "\n";
-	print "==================================================\n";
+	print "<hr>";
 	print "\n";
-	print "$type -> ".$types->{$type}."\n";
+	# print "$type -> ".$types->{$type}."\n";
+	print "<h2>".$types->{$type}." x $type</h2>";
 	my $other_types = {};
 	foreach my $resource ( keys %{$type_resources->{$type}} )
 	{
@@ -78,15 +79,22 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 	}
 	if( scalar keys %{$other_types} )
 	{
-		print "CO-CLASSES:\n";
+		#print "CO-CLASSES:\n";
+		print "<h3>Co-classes:</h3>";
+		print "<table>";
 		foreach my $other_type ( sort { $other_types->{$b}<=>$other_types->{$a} } keys %{$other_types} )
 		{
-			print sprintf( "% 5d - % 3d%% %s\n", $other_types->{$other_type}, 100*$other_types->{$other_type}/$types->{$type} , $other_type );
+			my $perc = 100*$other_types->{$other_type}/$types->{$type};
+			#print sprintf( "% 5d - % 3d%% %s\n", $other_types->{$other_type}, 100*$other_types->{$other_type}/$types->{$type} , $other_type );
+			print sprintf( "<tr><td style='text-align:right'>%d of %d</td><td><div style='float:left;background-color:green;height:1em;width:%dpx'></div><div style='float:left;background-color:red;height:1em;width:%dpx'></div></td><td style='text-align:right'>%d%%</td><td>%s</td></tr>\n", $other_types->{$other_type}, $types->{$type}, $perc*2, 200-$perc*2, $perc, $other_type );
+			
 		}
+		print "</table>";
 	}
 	else
 	{
-		print "NO CO-CLASSES.\n";
+		print "<p>No co-classes.</p>";
+		#print "NO CO-CLASSES.\n";
 	}
 	
 	foreach my $dir ( "rel","invrel" )
@@ -94,9 +102,11 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 		my $preds = $type_predicates->{$type}->{$dir};
 		next if( ! scalar keys %$preds );
 	
-		print "\u$dir Relationships\n";	
+		print "<h3>".{"rel"=>"Forward","invrel"=>"Inverse"}->{$dir}." Relationships</h3>";
+		#print "\u$dir Relationships\n";	
 		foreach my $pred ( sort { scalar keys %{$preds->{$b}} <=> scalar keys %{$preds->{$a}}} keys %{$preds} )
 		{
+print "<br>";
 			my $n = scalar keys %{$preds->{$pred}};
 			print sprintf( "* % 5d - % 3d%% %s\n", $n, 100*$n/$types->{$type} , $pred );
 			# footle the farbles // can't think of a good variable name
