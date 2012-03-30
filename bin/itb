@@ -86,9 +86,9 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 		print "<table>";
 		foreach my $other_type ( sort { $other_types->{$b}<=>$other_types->{$a} } keys %{$other_types} )
 		{
-			my $perc = 100*$other_types->{$other_type}/$types->{$type};
 			#print sprintf( "% 5d - % 0.2f%% %s\n", $other_types->{$other_type}, 100*$other_types->{$other_type}/$types->{$type} , $other_type );
-			print sprintf( "<tr><td style='text-align:right'>%d of %d</td><td><div style='float:left;background-color:green;height:1em;width:%dpx'></div><div style='float:left;background-color:red;height:1em;width:%dpx'></div></td><td style='text-align:right'>%d%%</td><td> are also a </td><td>%s</td></tr>\n", $other_types->{$other_type}, $types->{$type}, $perc*2, 200-$perc*2, $perc, $other_type );
+			print "<tr>".quantity( $other_types->{$other_type}, $types->{$type} );
+			print "<td> are also a </td><td>$other_type</td></tr>\n";
 			
 		}
 		print "</table>";
@@ -112,8 +112,8 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 		{
 			my $n = scalar keys %{$preds->{$pred}};
 			#print sprintf( "* % 5d - % 0.2f%% %s\n", $n, 100*$n/$types->{$type} , $pred );
-			my $perc = 100*$n/$types->{$type};
-			print sprintf( "<tr><td style='text-align:right'>%d of %d</td><td><div style='float:left;background-color:green;height:1em;width:%dpx'></div><div style='float:left;background-color:red;height:1em;width:%dpx'></div></td><td style='text-align:right'>%d%%</td><td> have $dirlabel &lt;%s&gt;</td></tr>\n", $types->{$type}, $n, $perc*2, 200-$perc*2, $perc, $pred );
+			print "<tr>".quantity( $n, $types->{$type} );
+			print "<td> have $dirlabel &lt;$pred&gt;, of which...</td></tr>\n";
 			# footle the farbles // can't think of a good variable name
 			my $farble = {};
 			foreach my $x ( keys %{$preds->{$pred}} )
@@ -129,7 +129,8 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 				#print sprintf( "  * % 5d - % 0.2f%% %s\n", $farble->{$farblekey}, 100*$farble->{$farblekey}/$n , $farblekey );
 				my $perc = 100*$farble->{$farblekey}/$n;
 
-				print sprintf( "<tr><td style='text-align:right'>%d of %d</td><td><div style='float:left;background-color:green;height:1em;width:%dpx'></div><div style='float:left;background-color:red;height:1em;width:%dpx'></div></td><td style='text-align:right'>%d%%</td><td>relate to a &lt;%s&gt;</td></tr>\n", $farble->{$farblekey}, $n, $perc*2, 200-$perc*2, $perc, $farblekey );
+				print "<tr>".quantity( $farble->{$farblekey}, $n );
+				print "<td>relate to a &lt;$farblekey&gt;</td></tr>\n";
 			}
 			print "</table></td></tr>";
 		}
@@ -141,6 +142,14 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 #print Dumper( $resource_types );
 exit;
 
+sub quantity
+{
+	my( $x, $n ) = @_;
+
+	if( $x == $n ) { return "<td colspan='3'>ALL</td>"; }
+
+	return sprintf( "<td style='text-align:right'>%d of %d</td><td><div style='float:left;background-color:green;height:1em;width:%dpx'></div><div style='float:left;background-color:red;height:1em;width:%dpx'></div></td><td style='text-align:right'>%d%%</td>", $x, $n, 200*$x/$n, 200-200*$x/$n, 100*$x/$n );
+}
 
 
 
@@ -218,6 +227,8 @@ sub map
 		&{$func}( $t );
 	}
 } 
+
+
 package InsideTheBox::Triple;
 
 use strict;
