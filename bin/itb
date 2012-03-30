@@ -24,12 +24,12 @@ my $type_predicates = {};
 $data->map( sub { my( $t ) = @_;
 	{
 		my @types = keys %{$resource_types->{$t->{s}}} ;
-		@types = ( '* no type *' ) unless scalar @types;
+		@types = ( 'resource with no type' ) unless scalar @types;
 		foreach my $type ( @types )
 		{
 			$type_predicates->{$type}->{rel}->{$t->{p}}->{$t->{s}} = {};
 			my @types2 = keys %{$resource_types->{$t->{o}}} ;
-			@types2 = ( '* no type *' ) unless scalar @types2;
+			@types2 = ( 'resource with no type' ) unless scalar @types2;
 			if( $t->{o_type} eq "literal" )
 			{
 				@types2 = $t->{o_code};
@@ -42,7 +42,7 @@ $data->map( sub { my( $t ) = @_;
 	}
 	{
 		my @types = keys %{$resource_types->{$t->{o}}} ;
-		@types = ( '* no type *' ) unless scalar @types;
+		@types = ( 'resource with no type' ) unless scalar @types;
 		if( $t->{o_type} eq "literal" )
 		{
 			@types = $t->{o_code};
@@ -51,7 +51,7 @@ $data->map( sub { my( $t ) = @_;
 		{
 			$type_predicates->{$type}->{invrel}->{$t->{p}}->{$t->{o_code}} = {};
 			my @types2 = keys %{$resource_types->{$t->{s}}} ;
-			@types2 = ( '* no type *' ) unless scalar @types2;
+			@types2 = ( 'resource with no type' ) unless scalar @types2;
 			foreach my $type2 ( @types2 )
 			{
 				$type_predicates->{$type}->{invrel}->{$t->{p}}->{$t->{o_code}}->{$type2} = 1;
@@ -59,6 +59,7 @@ $data->map( sub { my( $t ) = @_;
 		}
 	}
 });
+print "Done second pass\n";
 foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 {
 	print "\n";
@@ -91,8 +92,28 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 	foreach my $dir ( "rel","invrel" )
 	{
 		my $preds = $type_predicates->{$type}->{$dir};
-		print Dumper( $preds );
-exit;
+		next if( ! scalar keys %$preds );
+	
+		print "\u$dir Relationships\n";	
+		foreach my $pred ( sort { scalar keys %{$preds->{$b}} <=> scalar keys %{$preds->{$a}}} keys %{$preds} )
+		{
+			my $n = scalar keys %{$preds->{$pred}};
+			print sprintf( "* % 5d - % 3d%% %s\n", $n, 100*$n/$types->{$type} , $pred );
+			# footle the farbles // can't think of a good variable name
+			my $farble = {};
+			foreach my $x ( keys %{$preds->{$pred}} )
+			{
+				foreach my $y ( keys %{$preds->{$pred}->{$x}} )
+				{
+					$farble->{$y}++;
+				}
+			}
+			foreach my $farblekey ( sort { $farble->{$b}<=>$farble->{$a}} keys %{$farble} )
+			{
+				print sprintf( "  * % 5d - % 3d%% %s\n", $farble->{$farblekey}, 100*$farble->{$farblekey}/$n , $farblekey );
+				
+			}
+		}
 	}
 }
 
@@ -135,9 +156,12 @@ sub map
 	my( $self, $func ) = @_;
 	my $uri_re = "(<([^>]*)>|(_:[^\\s]+))";
 
+	my $n=0;
 	open( my $fh, '<:utf8', $self->{filename} ) || die "Could not open ".$self->{filename}.": $!";
 	while( my $line = readline($fh) )
 	{
+		++$n;
+		if( $n % 100000 == 0 ) { print "$n\n"; }
 		# may break on \" in literals
 		my $t = bless {}, "InsideTheBox::Triple";
 		#               1-3       4-6       7 8-10    11      12   13-15    16
