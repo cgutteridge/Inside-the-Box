@@ -146,7 +146,7 @@ sub quantity
 {
 	my( $x, $n ) = @_;
 
-	if( $x == $n ) { return "<td colspan='3'>ALL</td>"; }
+	if( $x == $n ) { return "<td colspan='3' style='text-align:right'>ALL</td>"; }
 
 	return sprintf( "<td style='text-align:right'>%d of %d</td><td><div style='float:left;background-color:green;height:1em;width:%dpx'></div><div style='float:left;background-color:red;height:1em;width:%dpx'></div></td><td style='text-align:right'>%d%%</td>", $x, $n, 200*$x/$n, 200-200*$x/$n, 100*$x/$n );
 }
