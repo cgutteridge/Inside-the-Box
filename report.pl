@@ -19,6 +19,46 @@ $data->map( sub { my( $t ) = @_;
 	$type_resources->{$t->{o}}->{$t->{s}}=1;
 	$types->{$t->{o}}++;
 });
+print "Done first pass\n";
+my $type_predicates = {};
+$data->map( sub { my( $t ) = @_;
+	{
+		my @types = keys %{$resource_types->{$t->{s}}} ;
+		@types = ( '* no type *' ) unless scalar @types;
+		foreach my $type ( @types )
+		{
+			$type_predicates->{$type}->{rel}->{$t->{p}}->{$t->{s}} = {};
+			my @types2 = keys %{$resource_types->{$t->{o}}} ;
+			@types2 = ( '* no type *' ) unless scalar @types2;
+			if( $t->{o_type} eq "literal" )
+			{
+				@types2 = $t->{o_code};
+			}
+			foreach my $type2 ( @types2 )
+			{
+				$type_predicates->{$type}->{rel}->{$t->{p}}->{$t->{s}}->{$type2} = 1;
+			}
+		}
+	}
+	{
+		my @types = keys %{$resource_types->{$t->{o}}} ;
+		@types = ( '* no type *' ) unless scalar @types;
+		if( $t->{o_type} eq "literal" )
+		{
+			@types = $t->{o_code};
+		}
+		foreach my $type ( @types )
+		{
+			$type_predicates->{$type}->{invrel}->{$t->{p}}->{$t->{o_code}} = {};
+			my @types2 = keys %{$resource_types->{$t->{s}}} ;
+			@types2 = ( '* no type *' ) unless scalar @types2;
+			foreach my $type2 ( @types2 )
+			{
+				$type_predicates->{$type}->{invrel}->{$t->{p}}->{$t->{o_code}}->{$type2} = 1;
+			}
+		}
+	}
+});
 foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 {
 	print "\n";
@@ -27,14 +67,14 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 	print "\n";
 	print "$type -> ".$types->{$type}."\n";
 	my $other_types = {};
-		foreach my $resource ( keys %{$type_resources->{$type}} )
+	foreach my $resource ( keys %{$type_resources->{$type}} )
+	{
+		OT: foreach my $other_type ( keys %{$resource_types->{$resource}} )
 		{
-			OT: foreach my $other_type ( keys %{$resource_types->{$resource}} )
-			{
-				next OT if $type eq $other_type;
-				$other_types->{$other_type}++;
-			}
+			next OT if $type eq $other_type;
+			$other_types->{$other_type}++;
 		}
+	}
 	if( scalar keys %{$other_types} )
 	{
 		print "CO-CLASSES:\n";
@@ -47,11 +87,28 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 	{
 		print "NO CO-CLASSES.\n";
 	}
+	
+	foreach my $dir ( "rel","invrel" )
+	{
+		my $preds = $type_predicates->{$type}->{$dir};
+		print Dumper( $preds );
+exit;
+	}
 }
 
 #print Dumper( $types );
 #print Dumper( $resource_types );
 exit;
+
+
+
+
+
+
+
+
+
+
 
 package InsideTheBox::Dataset;
 
@@ -101,6 +158,13 @@ sub map
 			if( defined $15 ) { $t->{o_datatype} = $15; } # don't record bnode datatypes?
 
 			if( defined $16 ) { $t->{o_lang} = $16; } 
+			
+			$t->{o_code} = $t->{o};	
+			if( $t->{o_type} eq "literal" ) 
+			{ 
+				$t->{o_code} = "literal";
+				if( $t->{o_datatype} ) { $t->{o_code} = "literal^^".$t->{o_datatype}; }
+			}
 		}
 		else
 		{

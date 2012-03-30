@@ -5510,7 +5510,7 @@ _:arc4171b798 <http://xmlns.com/foaf/0.1/name> "University of Cambridge" .
 <http://data.dev8d.org/2011/programme/dev8d_programme.rdf#sponsor-esdn> <http://xmlns.com/foaf/0.1/name> "SciVerse Developer Network | Elsevier" .
 <http://data.dev8d.org/2011/programme/dev8d_programme.rdf#sponsor-esdn> <http://xmlns.com/foaf/0.1/homepage> <http://developer.sciverse.com/> .
 <http://data.dev8d.org/2011/programme/dev8d_programme.rdf#sponsor-esdn> <http://xmlns.com/foaf/0.1/logo> <http://dev8d.org/images/Elsevierlogo150.gif> .
-<http://data.dev8d.org/2011/programme/dev8d_programme.rdf#sponsor-esdn> <http://open.vocab.org/terms/rank> "1" .
+<http://data.dev8d.org/2011/programme/dev8d_programme.rdf#sponsor-esdn> <http://open.vocab.org/terms/rank> "1"^^<http://totl.net/int> .
 <http://data.dev8d.org/2011/programme/dev8d_programme.rdf#sponsor-mresearch> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Organization> .
 <http://data.dev8d.org/2011/programme/dev8d_programme.rdf#sponsor-mresearch> <http://xmlns.com/foaf/0.1/name> "Microsoft Research" .
 <http://data.dev8d.org/2011/programme/dev8d_programme.rdf#sponsor-mresearch> <http://xmlns.com/foaf/0.1/homepage> <http://research.microsoft.com/en-us/> .
