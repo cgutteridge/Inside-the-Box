@@ -3,15 +3,54 @@
 use strict;
 use warnings;
 
-my $filename = "/Users/cjg/Projects/InsideTheBox/data.nt";
+use Data::Dumper;
+
+my $filename = $ARGV[0];
 my $var = "/Users/cjg/Projects/InsideTheBox/var";
 `rm -rf $var/*`;
 
+my $types = {};
+my $resource_types = {};
+my $type_resources = {};
 my $data = new InsideTheBox::Dataset( $filename );
 $data->map( sub { my( $t ) = @_;
 	return unless( $t->{p} eq "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" );
-	print $t->{o}."\n";
+	$resource_types->{$t->{s}}->{$t->{o}}=1;
+	$type_resources->{$t->{o}}->{$t->{s}}=1;
+	$types->{$t->{o}}++;
 });
+foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
+{
+	print "\n";
+	print "\n";
+	print "==================================================\n";
+	print "\n";
+	print "$type -> ".$types->{$type}."\n";
+	my $other_types = {};
+		foreach my $resource ( keys %{$type_resources->{$type}} )
+		{
+			OT: foreach my $other_type ( keys %{$resource_types->{$resource}} )
+			{
+				next OT if $type eq $other_type;
+				$other_types->{$other_type}++;
+			}
+		}
+	if( scalar keys %{$other_types} )
+	{
+		print "CO-CLASSES:\n";
+		foreach my $other_type ( sort { $other_types->{$b}<=>$other_types->{$a} } keys %{$other_types} )
+		{
+			print sprintf( "% 5d - % 3d%% %s\n", $other_types->{$other_type}, 100*$other_types->{$other_type}/$types->{$type} , $other_type );
+		}
+	}
+	else
+	{
+		print "NO CO-CLASSES.\n";
+	}
+}
+
+#print Dumper( $types );
+#print Dumper( $resource_types );
 exit;
 
 package InsideTheBox::Dataset;
