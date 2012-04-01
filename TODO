@@ -1,2 +1,4 @@
-- 0% risky to show when there's <1% but not 0%
 - Show example of each class, each co-class, each type->propery->type
+- List of classes & predciates at top
+- List of namespaces
+- better HTML around items ie css
