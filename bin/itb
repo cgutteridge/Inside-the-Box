@@ -4,10 +4,12 @@ use strict;
 use warnings;
 
 use Data::Dumper;
+use Digest::MD5;
 
 my $filename = $ARGV[0];
-my $var = "/Users/cjg/Projects/InsideTheBox/var";
-`rm -rf $var/*`;
+my $tmp = "/Users/cjg/Projects/InsideTheBox/var/tmp";
+my $cache = "/Users/cjg/Projects/InsideTheBox/var/cache";
+`rm -rf $tmp/*`;
 
 my $types = {};
 my $resource_types = {};
@@ -24,12 +26,12 @@ my $type_predicates = {};
 $data->map( sub { my( $t ) = @_;
 	{
 		my @types = keys %{$resource_types->{$t->{s}}} ;
-		@types = ( 'resource with no type' ) unless scalar @types;
+		@types = ( 'UNTYPED-RESOURCE' ) unless scalar @types;
 		foreach my $type ( @types )
 		{
 			$type_predicates->{$type}->{rel}->{$t->{p}}->{$t->{s}} = {};
 			my @types2 = keys %{$resource_types->{$t->{o}}} ;
-			@types2 = ( 'resource with no type' ) unless scalar @types2;
+			@types2 = ( 'UNTYPED-RESOURCE' ) unless scalar @types2;
 			if( $t->{o_type} eq "literal" )
 			{
 				@types2 = $t->{o_code};
@@ -42,7 +44,7 @@ $data->map( sub { my( $t ) = @_;
 	}
 	{
 		my @types = keys %{$resource_types->{$t->{o}}} ;
-		@types = ( 'resource with no type' ) unless scalar @types;
+		@types = ( 'UNTYPED-RESOURCE' ) unless scalar @types;
 		if( $t->{o_type} eq "literal" )
 		{
 			@types = $t->{o_code};
@@ -51,7 +53,7 @@ $data->map( sub { my( $t ) = @_;
 		{
 			$type_predicates->{$type}->{invrel}->{$t->{p}}->{$t->{o_code}} = {};
 			my @types2 = keys %{$resource_types->{$t->{s}}} ;
-			@types2 = ( 'resource with no type' ) unless scalar @types2;
+			@types2 = ( 'UNTYPED-RESOURCE' ) unless scalar @types2;
 			foreach my $type2 ( @types2 )
 			{
 				$type_predicates->{$type}->{invrel}->{$t->{p}}->{$t->{o_code}}->{$type2} = 1;
@@ -69,7 +71,7 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 	print "<hr>";
 	print "\n";
 	# print "$type -> ".$types->{$type}."\n";
-	print "<h2>".$types->{$type}." x &lt;$type&gt;</h2>";
+	print "<h2>".$types->{$type}." x ".resource_desc($type)."</h2>";
 	my $other_types = {};
 	foreach my $resource ( keys %{$type_resources->{$type}} )
 	{
@@ -88,7 +90,7 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 		{
 			#print sprintf( "% 5d - % 0.2f%% %s\n", $other_types->{$other_type}, 100*$other_types->{$other_type}/$types->{$type} , $other_type );
 			print "<tr>".quantity( $other_types->{$other_type}, $types->{$type} );
-			print "<td> are also a </td><td>$other_type</td></tr>\n";
+			print "<td> are also </td><td>".oresource_desc($other_type,1)."</td></tr>\n";
 			
 		}
 		print "</table>";
@@ -99,21 +101,21 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 		#print "NO CO-CLASSES.\n";
 	}
 	
+	print "<h3>Relationships</h3>";
+	print "<table border='0'>";
 	foreach my $dir ( "rel","invrel" )
 	{
 		my $preds = $type_predicates->{$type}->{$dir};
 		next if( ! scalar keys %$preds );
 	
-		print "<h3>".{"rel"=>"","invrel"=>"Inverse"}->{$dir}." Relationships</h3>";
 		my $dirlabel =  {"rel"=>"","invrel"=>"Inverse"}->{$dir}." Relationship";
 		#print "\u$dir Relationships\n";	
-		print "<table border='0'>";
 		foreach my $pred ( sort { scalar keys %{$preds->{$b}} <=> scalar keys %{$preds->{$a}}} keys %{$preds} )
 		{
 			my $n = scalar keys %{$preds->{$pred}};
 			#print sprintf( "* % 5d - % 0.2f%% %s\n", $n, 100*$n/$types->{$type} , $pred );
 			print "<tr>".quantity( $n, $types->{$type} );
-			print "<td> have $dirlabel &lt;$pred&gt;, of which...</td></tr>\n";
+			print "<td> have $dirlabel ".resource_desc($pred).", of which...</td></tr>\n";
 			# footle the farbles // can't think of a good variable name
 			my $farble = {};
 			foreach my $x ( keys %{$preds->{$pred}} )
@@ -130,17 +132,68 @@ foreach my $type ( sort { $types->{$b}<=>$types->{$a} } keys %{$types} )
 				my $perc = 100*$farble->{$farblekey}/$n;
 
 				print "<tr>".quantity( $farble->{$farblekey}, $n );
-				print "<td>relate to a &lt;$farblekey&gt;</td></tr>\n";
+				print "<td>relate to ".resource_desc($farblekey,1)."</td></tr>\n";
 			}
 			print "</table></td></tr>";
 		}
-		print "</table>";
 	}
+	print "</table>";
 }
 
 #print Dumper( $types );
 #print Dumper( $resource_types );
 exit;
+
+sub oresource_desc
+{
+	my( $uri ) = @_;
+	return resource_desc( $uri );
+}
+
+my $uri_labels = {};
+sub resource_desc
+{
+	my( $uri, $an ) = @_;
+
+	if( $uri eq "UNTYPED-LITERAL" ) { return ($an?"an ":'')."<b>Untyped Literal</b>"; }
+	if( $uri eq "UNTYPED-RESOURCE" ) { return ($an?"an ":'')."<b>Untyped Resource</b>"; }
+	if( $uri =~ s/^LITERAL // ) { return ($an?"an ":'')."<b>Literal</b> of type ".resource_desc( $uri ); }
+
+	if( $uri =~ m/http:\/\/www.w3.org\/2001\/XMLSchema#(.*)/ )
+	{
+		return "<strong><a href='http://www.w3.org/TR/xmlschema-2/#$1'>\u$1</a></string";
+	}
+		
+	if( !defined $uri_labels->{$uri} )
+	{
+		my $enc_uri = $uri;
+		$enc_uri =~ s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
+		my $cachefile = $cache."/".$enc_uri;
+		if( -e $cachefile )
+		{
+			open( my $fh, '<:utf8', $cachefile ) || die "Could not (r) open $cachefile: $!";
+			$uri_labels->{$uri} = readline($fh);
+			close $fh;
+		}
+		else
+		{
+			$uri_labels->{$uri} = `curl -s http://graphite.ecs.soton.ac.uk/label/?uri=$enc_uri`;
+			open( my $fh, '>:utf8', $cachefile ) || die "Could not (w) open $cachefile: $!";
+			print $fh $uri_labels->{$uri};
+			close $fh;
+		}
+	}
+	if( defined $uri_labels->{$uri} &&  $uri_labels->{$uri} ne "" ) 
+	{ 
+		my $r = "";
+		if( $an ) { if( $uri_labels->{$uri}=~m/^[aeiou]/i ) { $r="an " } else { $r="a "; }}
+		return "$r<b><a href='$uri' title='$uri' >".$uri_labels->{$uri}."</a></b>"; 
+	}
+	my $r = "";
+	if( $an ) { if( $uri=~m/[#\/][aeiou][^#\/]*$/i ) { $r="an " } else { $r="a "; }}
+	return "&lt;$uri&gt;";
+}
+
 
 sub quantity
 {
@@ -148,7 +201,7 @@ sub quantity
 
 	if( $x == $n ) { return "<td colspan='3' style='text-align:right'>ALL</td>"; }
 
-	return sprintf( "<td style='text-align:right'>%d of %d</td><td><div style='float:left;background-color:green;height:1em;width:%dpx'></div><div style='float:left;background-color:red;height:1em;width:%dpx'></div></td><td style='text-align:right'>%d%%</td>", $x, $n, 200*$x/$n, 200-200*$x/$n, 100*$x/$n );
+	return sprintf( "<td style='text-align:right'>%d of %d</td><td width='200'><div style='float:left;background-color:#3333ff;height:1em;width:%dpx'></div><div style='float:left;background-color:#cccccc;height:1em;width:%dpx'></div></td><td style='text-align:right'>%0.1f%%</td>", $x, $n, 200*$x/$n, 200-200*$x/$n, 100*$x/$n );
 }
 
 
@@ -215,8 +268,8 @@ sub map
 			$t->{o_code} = $t->{o};	
 			if( $t->{o_type} eq "literal" ) 
 			{ 
-				$t->{o_code} = "literal";
-				if( $t->{o_datatype} ) { $t->{o_code} = "literal^^".$t->{o_datatype}; }
+				$t->{o_code} = "UNTYPED-LITERAL";
+				if( $t->{o_datatype} ) { $t->{o_code} = "LITERAL ".$t->{o_datatype}; }
 			}
 		}
 		else
